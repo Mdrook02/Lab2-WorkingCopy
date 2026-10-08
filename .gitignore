@@ -1,3 +1,6 @@
 data_augmented/
 venv/
 __pycache__/
+
+# Windows Zone.Identifier sidecar files (WSL artefacts)
+*:Zone.Identifier
