@@ -1,0 +1,2 @@
+version,device name,recording epoch time,recording time,recording timezone,platform,appVersion,device id,sensors,sampleRateMs,standardisation,platform version
+3,iPhone 13 Pro,1791345061314,2026-10-07_03-51-01,America/Denver,ios,1.67.1,18d6a5e5-8c19-43cc-96c6-fc3cbf4810ed,Accelerometer|Annotation|AccelerometerUncalibrated,10||10,false,26.5.2

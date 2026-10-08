@@ -1,0 +1,2 @@
+version,device name,recording epoch time,recording time,recording timezone,platform,appVersion,device id,sensors,sampleRateMs,standardisation,platform version
+3,SM-S731U,1791223000002,2026-10-05_17-56-40,America/Denver,android,1.67,29e047de-0bc5-499c-bce1-d1316d1cd809,Accelerometer|Annotation|TotalAcceleration|AccelerometerUncalibrated,10||10|10,false,36

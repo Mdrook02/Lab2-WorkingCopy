@@ -1,0 +1,2 @@
+version,device name,recording epoch time,recording time,recording timezone,platform,appVersion,device id,sensors,sampleRateMs,standardisation,platform version
+3,iPhone 15 Pro Max,1791222896988,2026-10-05_17-54-56,America/Denver,ios,1.67.1,9ac8da46-a4a6-4abd-b573-8360b501eea9,Accelerometer|Annotation|AccelerometerUncalibrated,10||10,false,26.6

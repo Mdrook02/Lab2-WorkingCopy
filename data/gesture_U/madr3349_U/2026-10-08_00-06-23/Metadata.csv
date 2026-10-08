@@ -1,0 +1,2 @@
+version,device name,recording epoch time,recording time,recording timezone,platform,appVersion,device id,sensors,sampleRateMs,standardisation,platform version
+3,iPhone 16,1791417983508,2026-10-08_00-06-23,America/Denver,ios,1.67.1,4e82ce70-0742-4ada-add3-368e9cadedf7,Accelerometer|Annotation|AccelerometerUncalibrated,10||10,false,26.6.2
