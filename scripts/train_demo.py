@@ -71,7 +71,9 @@ def load_dataset(dirs: list[Path]):
     for root in dirs:
         if not root.is_dir():
             continue
-        for csv_path in sorted(root.rglob("Accelerometer.csv")):
+        for csv_path in sorted(root.rglob("Accelerometer*.csv")):
+            if "Uncalibrated" in csv_path.name:
+                continue
             try:
                 feats = extract_features(csv_path)
                 label = label_from_path(csv_path, root)
