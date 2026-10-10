@@ -1,0 +1,2 @@
+version,device name,recording epoch time,recording time,recording timezone,platform,appVersion,device id,sensors,sampleRateMs,standardisation,platform version
+3,Pixel 9 Pro XL,1791655172544,2026-10-10_17-59-32,America/Denver,android,1.67,ee98a854-83c9-4f86-8c74-eaa009613898,Accelerometer|Annotation|TotalAcceleration|AccelerometerUncalibrated,10||10|10,false,37
