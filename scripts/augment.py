@@ -4,8 +4,9 @@ augment.py — Data augmentation for accelerometer gesture CSVs.
 
 Reads raw captures from data/<gesture>/**/*.csv (searches recursively,
 so extra sub-folders like data/gesture_L/thgh9905_L_Gesture/ are handled
-automatically) and writes augmented copies to data_augmented/<gesture>/
-using four techniques appropriate for 3-axis IMU gesture data:
+automatically) and writes augmented copies under the matching capture
+folders in data_augmented/ using four techniques appropriate for 3-axis
+IMU gesture data:
 
   1. Noise jitter       — adds small Gaussian noise to x, y, z
   2. Time-shifting      — drops a few samples from the start, zero-pads the end
@@ -19,10 +20,10 @@ Supports two column-naming conventions automatically:
   • SensorLogger:  time, seconds_elapsed, x, y, z, absolute_acceleration
   • Phyphox:       Time (s), Acceleration x (m/s^2), …, Absolute acceleration (m/s^2)
 
-The output is always flattened into data_augmented/<gesture>/:
+The output preserves each source capture's relative folder path:
   data/gesture_L/thgh9905_L_Gesture/Raw Data 1.csv
-    →  data_augmented/gesture_L/Raw Data 1__noise_00.csv
-       data_augmented/gesture_L/Raw Data 1__noise_01.csv
+    →  data_augmented/gesture_L/thgh9905_L_Gesture/Raw Data 1__noise_00.csv
+       data_augmented/gesture_L/thgh9905_L_Gesture/Raw Data 1__noise_01.csv
        ...
 
 Usage:
@@ -289,9 +290,6 @@ def main() -> None:
             print(f"  [{gesture}]  no CSVs found — skipping")
             continue
 
-        dest_dir = out_dir / gesture
-        dest_dir.mkdir(parents=True, exist_ok=True)
-
         n_tech = len(TECHNIQUES)
         print(f"  [{gesture}]  {len(csv_files)} source file(s)  "
               f"→  {len(csv_files) * n_tech * args.n} augmented files  "
@@ -299,6 +297,7 @@ def main() -> None:
 
         for src in csv_files:
             try:
+                dest_dir = out_dir / gesture / src.parent.relative_to(gesture_dir)
                 count          = process_file(src, dest_dir, rng, args.n)
                 total_src     += 1
                 total_written += count

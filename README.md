@@ -54,12 +54,12 @@ STM32F4 Discovery board or external IMU was used.
 (free, available on iOS and Android).  Default settings were used: the app
 streams accelerometer readings at the device's native sampling rate
 (typically 100 Hz) and writes them to a timestamped folder containing one
-`Accelerometer.csv` per recording session.
+`Accelerometer.csv` per recording.
 
 **Secondary app:** One contributor (thgh9905) used
-[Phyphox](https://phyphox.org/) for their idle-class captures.  Phyphox
-produces a different CSV column layout (see §5); both scripts handle this
-automatically.
+[Phyphox](https://phyphox.org/) for 25 active-gesture recordings and 7
+idle recordings.  Phyphox produces a different CSV column layout (see §5);
+both scripts handle this automatically.
 
 **How SensorLogger creates files:** Each time you tap "Record," the app
 creates a new folder named with an ISO-8601 timestamp
@@ -74,7 +74,7 @@ CSV file.
 - **Contributors:** 7 student contributors across the full dataset (not
   every contributor recorded every class — see §7).
 - **Sessions:** Captures were collected across multiple independent sessions
-  spanning **2026-10-05 through 2026-10-10**.  Each contributor recorded
+  spanning **2026-10-05 through 2026-10-12**.  Each contributor recorded
   their gestures in at least one sitting; several contributed across
   multiple days, giving natural within-person variation.
 - **Repetitions:** Each contributor performed the gesture multiple times,
@@ -120,8 +120,9 @@ gesture-dataset/
 ```
 
 `data_augmented/` is **not committed** to the repository.  It is generated
-locally by running `scripts/augment.py` and contains synthetic recordings
-organized by class in flat per-class folders (e.g. `data_augmented/gesture_U/`).
+locally by running `scripts/augment.py` and mirrors the class, contributor,
+and capture-folder structure under `data/`.  This keeps every generated
+recording linked to its source capture and prevents output-name collisions.
 
 ---
 
@@ -131,7 +132,7 @@ Each `Accelerometer.csv` uses one of two column layouts depending on which
 app captured it.  Both scripts select columns by name, so either format
 parses correctly without any manual intervention.
 
-### SensorLogger format (all contributors except thgh9905 idle data)
+### SensorLogger format (recordings not captured with Phyphox)
 
 ```
 time,seconds_elapsed,z,y,x
@@ -148,7 +149,7 @@ time,seconds_elapsed,z,y,x
 | `y` | float | Accelerometer Y-axis, **m/s²** |
 | `x` | float | Accelerometer X-axis, **m/s²** |
 
-### Phyphox format (thgh9905 idle recordings only)
+### Phyphox format (thgh9905 active-gesture and idle recordings)
 
 ```
 "Time (s)","Acceleration x (m/s^2)","Acceleration y (m/s^2)","Acceleration z (m/s^2)","Absolute acceleration (m/s^2)"
@@ -168,8 +169,10 @@ time,seconds_elapsed,z,y,x
 
 - Scripts should select the x, y, z axes **by column name**, not by
   position.  `augment.py` and `train_demo.py` both do this automatically.
-- Each file contains approximately 200–400 data rows (≈ 2–4 seconds at
-  ~100 Hz), corresponding to one gesture repetition or one idle window.
+- File lengths vary with the device and capture: the current files contain
+  145–1,901 data rows (median 308), with recorded durations of 1.45–7.35
+  seconds.  Each file corresponds to one gesture repetition or one idle
+  window.
 - There are no comment lines or metadata headers in either format; the
   first line of every file is the column header.
 - SensorLogger also writes `AccelerometerUncalibrated.csv`,
@@ -228,14 +231,15 @@ information and can be ignored for classification purposes.
 
 | Class | Label | Recordings | Contributors |
 |-------|-------|------------|--------------|
-| gesture_3 | `3` | 39 | 3GesturesECEN5003, Jagi4310, Lifa9737, adwa4856, augo9400, madr3349 |
-| gesture_L | `L` | 39 | Jagi4310, LGesturesECEN5003, adwa4856, augo9400, Lifa9737, madr3349 |
-| gesture_U | `U` | 46 | Jagi4310, Lifa9737, UGesturesECEN5003, adwa4856, augo9400, madr3349 |
-| gesture_idle | `idle` | 32 | Jagi4310, madr3349, ahab5661, thgh9905 |
-| **Total** | — | **156** | 7 distinct contributors |
+| gesture_3 | `3` | 39 | 3GesturesECEN5003, Jagi4310, Lifa9737, adwa4856, augo9400, madr3349, thgh9905 |
+| gesture_L | `L` | 39 | Jagi4310, LGesturesECEN5003, adwa4856, augo9400, Lifa9737, madr3349, thgh9905 |
+| gesture_U | `U` | 46 | Jagi4310, Lifa9737, UGesturesECEN5003, adwa4856, augo9400, madr3349, thgh9905 |
+| gesture_idle | `idle` | 39 | Jagi4310, madr3349, ahab5661, thgh9905 |
+| **Total** | — | **163** | 7 distinct contributors |
 
-Captures span 2026-10-05 through 2026-10-10 across multiple independent
+Captures span 2026-10-05 through 2026-10-12 across multiple independent
 recording sessions.  Not every contributor recorded every class (see §8).
+Seven additional idle recordings were captured by madr3349 on 2026-10-12.
 
 **Note on contributor folder names:** The contributor IDs in this table are
 canonical identifiers used for reference.  The actual subfolder names inside
@@ -250,33 +254,32 @@ which depends only on the top-level `gesture_*` folder (see §6).
 
 1. **Uneven contributor coverage across classes:** Not all contributors
    recorded every class.  The gesture_idle class has 4 contributors
-   (Jagi4310, madr3349, ahab5661, thgh9905), while the active gesture
-   classes have 6 contributors each, with no overlap from ahab5661 or
-   thgh9905.  Conversely, adwa4856 and augo9400 have no idle-class data.
+   (Jagi4310, madr3349, ahab5661, thgh9905), while each active gesture
+   class has 7.  ahab5661 contributed only idle recordings; the
+   class-specific contributors 3GesturesECEN5003, LGesturesECEN5003, and
+   UGesturesECEN5003 contributed only their respective active gesture.
+   Conversely, adwa4856 and augo9400 have no idle-class data.
 
-2. **Missing active-gesture data (thgh9905):** This contributor submitted
-   their gesture_3, gesture_L, and gesture_U data as Excel (`.xlsx`) files,
-   which are not compatible with the CSV format used here.  Their active
-   gesture recordings are absent from the dataset entirely.  They are
-   represented only in the idle class (via Phyphox-format CSVs).
+2. **Capture format and contributor coverage:** thgh9905's active-gesture
+   recordings (7 `3`, 7 `L`, and 11 `U`) and 7 idle recordings use Phyphox
+   CSVs.  The other recordings use SensorLogger.  The idle class has fewer
+   distinct contributors than the active classes, and not every contributor
+   recorded every class.
 
 3. **Class imbalance:** `gesture_U` has 46 recordings versus 39 each for
-   `gesture_3` and `gesture_L` and 32 for `gesture_idle` (≈ 44% more
-   than idle).  A production training pipeline should apply class weights
+   `gesture_3`, `gesture_L`, and `gesture_idle` (≈ 18% more than each).
+   The seven new idle recordings come from one contributor, so the more
+   even class counts do not add new contributor diversity to the idle class.
+   A production training pipeline should apply class weights
    or resampling if the imbalance causes issues; the demo script trains
    without correction.
 
-4. **Mixed capture applications:** The majority of recordings use
-   SensorLogger; the thgh9905 idle recordings use Phyphox.  The two apps
-   produce different CSV column layouts (see §5).  Both scripts handle this
-   automatically by selecting columns by name.
-
-5. **Phone-only captures:** All recordings were made with smartphones.  No
+4. **Phone-only captures:** All recordings were made with smartphones.  No
    STM32F4 Discovery board data is included.  The axis orientation, sampling
    rate, and sensor noise characteristics may differ from the course board's
    onboard accelerometer.
 
-6. **Single device orientation:** Contributors held the phone in portrait
+5. **Single device orientation:** Contributors held the phone in portrait
    mode.  Gestures performed with a different phone orientation (landscape,
    face-down, etc.) may produce substantially different raw traces.
 
@@ -284,7 +287,7 @@ which depends only on the top-level `gesture_*` folder (see §6).
 
 ## 9. Setup and dependencies
 
-Python 3.8 or later is required.  Create a virtual environment and install
+Python 3.10 or later is required.  Create a virtual environment and install
 dependencies before running either script:
 
 ```bash
@@ -312,8 +315,10 @@ python3 scripts/augment.py
 ```
 
 **What it does:** Reads every `Accelerometer.csv` recursively from `data/`
-and writes augmented copies into `data_augmented/`, organized into flat
-per-class subfolders (e.g. `data_augmented/gesture_U/`).  Four augmentation
+and writes augmented copies into `data_augmented/`, preserving each source
+capture's path below its class folder.  For example,
+`data/gesture_U/contributor/timestamp/Accelerometer.csv` produces files
+under `data_augmented/gesture_U/contributor/timestamp/`.  Four augmentation
 techniques are applied:
 
 | Technique | Description |
@@ -324,8 +329,8 @@ techniques are applied:
 | 3-D rotation | Applies a small random rotation matrix (up to ±15°) to the (x, y, z) vectors |
 
 Three synthetic copies are generated per technique per source file,
-producing 12 augmented files per original recording (1 872 files total from
-156 source files).
+producing 12 augmented files per original recording (1,956 files total
+from the current 163 source recordings).
 
 The script requires no arguments.  On re-run it overwrites any previously
 generated `data_augmented/` content.
@@ -344,12 +349,18 @@ python3 scripts/augment.py --data-dir data --out-dir data_augmented --n 3 --seed
 python3 scripts/train_demo.py
 ```
 
-**What it does:** Loads all `Accelerometer.csv` files from `data/` and, if
-present, from `data_augmented/`.  Derives the label for each file using the
-`gesture_*` folder convention described in §6.  Extracts 12 statistical
-features per file (mean, std, min, max for each of the x, y, z axes) and
-trains a 100-tree Random Forest classifier (scikit-learn).  Prints accuracy,
-a full per-class classification report, a confusion matrix, and per-feature
+**What it does:** Loads raw recordings from `data/` and, if present,
+augmented recordings from `data_augmented/`.  Derives each label from the
+`gesture_*` folder as described in §6 and identifies a capture group from
+the relative class/contributor/capture-folder path.  It first makes a
+stratified train/test split of the raw capture groups.  Raw recordings from
+training groups and their matching augmented copies are used for training;
+the test set contains only raw recordings from held-out groups.  This keeps
+augmented variants of a capture out of the test set and avoids evaluating on
+near-duplicates of training examples.  The script extracts 12 statistical
+features per file (mean, std, min, max for each of the x, y, z axes), trains
+a 100-tree Random Forest classifier (scikit-learn), and prints accuracy, a
+full per-class classification report, a confusion matrix, and feature
 importances to stdout.
 
 For best results, run the augmentation script first:
@@ -360,7 +371,8 @@ python3 scripts/train_demo.py
 ```
 
 The demo script also works on raw data alone (if `data_augmented/` does not
-exist, it trains only on the 156 source recordings across 4 classes).
+exist, it trains on the training portion of the 163 raw recordings and
+evaluates on the held-out raw recordings).
 
 Optional arguments:
 

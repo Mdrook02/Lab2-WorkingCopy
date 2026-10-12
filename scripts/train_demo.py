@@ -2,10 +2,10 @@
 """
 train_demo.py — Gesture classifier demo for 3-axis accelerometer data.
 
-Loads all Accelerometer.csv files from data/ and data_augmented/ (if present),
-extracts 12 statistical features per recording (mean/std/min/max × x/y/z),
-trains a Random Forest classifier, and prints accuracy, a classification
-report, and feature importances.
+Loads raw Accelerometer.csv files and, if present, their augmented variants.
+It splits raw recordings by capture folder before training; augmented files
+are included in training only when their source recording is in the training
+split. Evaluation uses only held-out raw recordings.
 
 Usage:
     python3 scripts/train_demo.py
@@ -65,26 +65,40 @@ def label_from_path(path: Path, data_root: Path) -> str:
     return gesture_folder.replace("gesture_", "")
 
 
-def load_dataset(dirs: list[Path]):
-    X, y = [], []
+def load_dataset(data_dir: Path, aug_dir: Path):
+    raw_X, raw_y, raw_groups = [], [], []
+    aug_X, aug_y, aug_groups = [], [], []
     skipped = 0
-    for root in dirs:
+    for root, is_augmented in ((data_dir, False), (aug_dir, True)):
         if not root.is_dir():
             continue
-        for csv_path in sorted(root.rglob("Accelerometer*.csv")):
-            if "Uncalibrated" in csv_path.name:
-                continue
+        pattern = "Accelerometer__*.csv" if is_augmented else "Accelerometer.csv"
+        for csv_path in sorted(root.rglob(pattern)):
             try:
                 feats = extract_features(csv_path)
                 label = label_from_path(csv_path, root)
-                X.append(feats)
-                y.append(label)
+                group = str(csv_path.relative_to(root).parent)
+                if is_augmented:
+                    aug_X.append(feats)
+                    aug_y.append(label)
+                    aug_groups.append(group)
+                else:
+                    raw_X.append(feats)
+                    raw_y.append(label)
+                    raw_groups.append(group)
             except Exception as exc:
                 print(f"  WARNING: skipping {csv_path.name}: {exc}", file=sys.stderr)
                 skipped += 1
     if skipped:
         print(f"  ({skipped} file(s) skipped due to errors)")
-    return np.array(X, dtype=np.float32), np.array(y)
+    return (
+        np.array(raw_X, dtype=np.float32),
+        np.array(raw_y),
+        np.array(raw_groups),
+        np.array(aug_X, dtype=np.float32),
+        np.array(aug_y),
+        np.array(aug_groups),
+    )
 
 
 def main():
@@ -98,22 +112,67 @@ def main():
     args = ap.parse_args()
 
     print("Loading dataset...")
-    dirs = [args.data_dir, args.aug_dir]
-    X, y = load_dataset(dirs)
+    X_raw, y_raw, raw_groups, X_aug, y_aug, aug_groups = load_dataset(
+        args.data_dir, args.aug_dir
+    )
 
-    if len(X) == 0:
+    if len(X_raw) == 0:
         print("ERROR: no samples loaded. Check that data/ exists and contains Accelerometer.csv files.")
         sys.exit(1)
 
-    classes, counts = np.unique(y, return_counts=True)
-    print(f"  Loaded {len(X)} samples across {len(classes)} classes:")
-    for cls, cnt in zip(classes, counts):
-        print(f"    {cls}: {cnt}")
+    group_labels = {}
+    for group, label in zip(raw_groups, y_raw):
+        if group in group_labels and group_labels[group] != label:
+            print(f"ERROR: capture group {group!r} has conflicting labels.", file=sys.stderr)
+            sys.exit(1)
+        group_labels[group] = label
 
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=args.test_size, random_state=args.seed, stratify=y
+    unique_groups = np.array(sorted(group_labels))
+    labels_by_group = np.array([group_labels[group] for group in unique_groups])
+    classes, group_counts = np.unique(labels_by_group, return_counts=True)
+    if len(group_counts) == 0 or group_counts.min() < 2:
+        print("ERROR: need at least two raw capture groups per class for a stratified split.", file=sys.stderr)
+        sys.exit(1)
+
+    train_groups, test_groups = train_test_split(
+        unique_groups,
+        test_size=args.test_size,
+        random_state=args.seed,
+        stratify=labels_by_group,
     )
-    print(f"\nTrain: {len(X_train)}  |  Test: {len(X_test)}")
+    train_group_set = set(train_groups)
+    test_group_set = set(test_groups)
+
+    raw_train_mask = np.array([group in train_group_set for group in raw_groups])
+    raw_test_mask = np.array([group in test_group_set for group in raw_groups])
+    aug_train_mask = np.array([group in train_group_set for group in aug_groups])
+
+    X_train_parts = [X_raw[raw_train_mask]]
+    y_train_parts = [y_raw[raw_train_mask]]
+    if aug_train_mask.any():
+        X_train_parts.append(X_aug[aug_train_mask])
+        y_train_parts.append(y_aug[aug_train_mask])
+
+    X_train = np.concatenate(X_train_parts)
+    y_train = np.concatenate(y_train_parts)
+    X_test = X_raw[raw_test_mask]
+    y_test = y_raw[raw_test_mask]
+
+    unmatched_augmented = len(aug_groups) - int(aug_train_mask.sum()) - sum(
+        group in test_group_set for group in aug_groups
+    )
+    print(f"  Raw recordings: {len(X_raw)} across {len(unique_groups)} capture groups")
+    print(f"  Augmented recordings found: {len(X_aug)}")
+    if unmatched_augmented:
+        print(f"  Augmented recordings without a matching raw capture: {unmatched_augmented} (excluded)")
+    print(f"  Classes: {', '.join(classes)}")
+    print(f"  Training groups: {len(train_groups)}  |  Test groups: {len(test_groups)}")
+    print(f"  Training samples (raw + training-group augmentations): {len(X_train)}")
+    print(f"  Test samples (held-out raw only): {len(X_test)}")
+
+    if not len(X_test):
+        print("ERROR: no held-out raw recordings available for testing.", file=sys.stderr)
+        sys.exit(1)
 
     print(f"\nTraining Random Forest ({args.n_trees} trees)...")
     clf = RandomForestClassifier(n_estimators=args.n_trees, random_state=args.seed, n_jobs=-1)
